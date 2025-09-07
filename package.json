@@ -1,27 +1,42 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "obsidian-canvas-thumbnails",
 	"version": "1.0.1",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "This plugin adds thumbnails to canvas files in Obsidian bases-cards view using the first image from the canvas.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json"
+		"version": "node version-bump.mjs && git add manifest.json versions.json",
+		"lint": "eslint . --ext .ts,.js",
+		"test": "echo \"No tests specified\" && exit 0"
 	},
-	"keywords": [],
-	"author": "",
+	"keywords": [
+		"obsidian",
+		"plugin",
+		"canvas",
+		"thumbnails",
+		"preview"
+	],
+	"author": "your-name",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/your-username/obsidian-canvas-thumbnails"
+	},
 	"devDependencies": {
-		"@types/node": "^16.11.6",
-		"@typescript-eslint/eslint-plugin": "5.29.0",
-		"@typescript-eslint/parser": "5.29.0",
-		"builtin-modules": "3.3.0",
-		"esbuild": "0.14.47",
+		"@types/node": "^20.10.0",
+		"@typescript-eslint/eslint-plugin": "^6.13.0",
+		"@typescript-eslint/parser": "^6.13.0",
+		"builtin-modules": "^3.3.0",
+		"esbuild": "^0.19.8",
+		"eslint": "^8.54.0",
 		"obsidian": "latest",
-		"tslib": "2.4.0",
-		"typescript": "4.7.4"
+		"tslib": "^2.6.2",
+		"typescript": "^5.3.2"
 	},
 	"dependencies": {
-		"codemirror": "^6.0.1"
+		"@codemirror/language": "^6.9.3",
+		"@codemirror/state": "^6.3.3",
+		"@codemirror/view": "^6.22.1"
 	}
 }
