@@ -1,0 +1,186 @@
+name: Release Canvas Thumbnail Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g., v1.0.0)"
+        required: true
+        default: "v1.0.0"
+      release_notes:
+        description: "Release notes"
+        required: false
+        default: "New release with bug fixes and improvements"
+      draft:
+        description: "Create as draft release"
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史以便生成更好的发布说明
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies..."
+          npm ci
+
+      - name: Build plugin
+        run: |
+          echo "Building plugin..."
+          npm run build
+
+      - name: Verify build output
+        run: |
+          echo "=== Verifying build output ==="
+          echo "Root directory contents:"
+          ls -la ./
+          
+          echo -e "\nChecking required files:"
+          if [ -f "./main.js" ]; then
+            echo "✅ main.js found"
+            echo "main.js size: $(stat -c%s main.js) bytes"
+          else
+            echo "❌ main.js not found"
+            exit 1
+          fi
+          
+          if [ -f "./manifest.json" ]; then
+            echo "✅ manifest.json found"
+            cat manifest.json
+          else
+            echo "❌ manifest.json not found"
+            exit 1
+          fi
+          
+          if [ -f "./styles.css" ]; then
+            echo "✅ styles.css found"
+          else
+            echo "⚠️ styles.css not found (optional)"
+          fi
+
+      - name: Update manifest version
+        run: |
+          echo "Updating manifest.json version..."
+          version="${{ github.event.inputs.version }}"
+          # 移除 'v' 前缀如果存在
+          clean_version=${version#v}
+          
+          # 使用 jq 更新版本号
+          if command -v jq &> /dev/null; then
+            jq --arg version "$clean_version" '.version = $version' manifest.json > manifest.tmp
+            mv manifest.tmp manifest.json
+          else
+            # 如果没有 jq，使用 sed
+            sed -i "s/\"version\": \".*\"/\"version\": \"$clean_version\"/" manifest.json
+          fi
+          
+          echo "Updated manifest.json:"
+          cat manifest.json
+
+      - name: Create release package
+        run: |
+          echo "Creating release package..."
+          mkdir -p release-files
+          
+          # 复制必需文件
+          cp main.js release-files/
+          cp manifest.json release-files/
+          
+          # 复制可选文件
+          [ -f styles.css ] && cp styles.css release-files/ || echo "No styles.css to copy"
+          [ -f README.md ] && cp README.md release-files/ || echo "No README.md to copy"
+          
+          echo "Release files:"
+          ls -la release-files/
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ github.event.inputs.version }}"
+          release_notes="${{ github.event.inputs.release_notes }}"
+          is_draft="${{ github.event.inputs.draft }}"
+          
+          echo "Creating release with tag: $tag"
+          echo "Release notes: $release_notes"
+          echo "Draft: $is_draft"
+          
+          # 构建发布命令
+          release_cmd="gh release create \"$tag\" --title \"Canvas Thumbnail Plugin $tag\""
+          
+          if [ "$is_draft" = "true" ]; then
+            release_cmd="$release_cmd --draft"
+          fi
+          
+          if [ -n "$release_notes" ]; then
+            release_cmd="$release_cmd --notes \"$release_notes\""
+          else
+            release_cmd="$release_cmd --generate-notes"
+          fi
+          
+          # 添加文件
+          release_cmd="$release_cmd release-files/main.js release-files/manifest.json"
+          
+          # 添加可选文件
+          [ -f release-files/styles.css ] && release_cmd="$release_cmd release-files/styles.css"
+          
+          # 执行发布命令
+          eval $release_cmd
+          
+          echo "✅ Release created successfully!"
+          echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/$tag"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-release-${{ github.event.inputs.version }}
+          path: release-files/
+          retention-days: 30
+
+  # 可选：自动测试作业
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests (if available)
+        run: |
+          if [ -f "package.json" ] && npm run | grep -q "test"; then
+            echo "Running tests..."
+            npm test
+          else
+            echo "No tests found, skipping..."
+          fi
+
+      - name: Lint code (if available)
+        run: |
+          if [ -f "package.json" ] && npm run | grep -q "lint"; then
+            echo "Running linter..."
+            npm run lint
+          else
+            echo "No linter found, skipping..."
+          fi
