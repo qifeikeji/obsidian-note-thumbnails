@@ -1,10 +1,10 @@
 {
-	"id": "obsidian-note-thumbnails",
-	"name": "Note Thumbnails",
+	"id": "obsidian-canvas-thumbnails",
+	"name": "Canvas Thumbnails",
 	"version": "1.0.1",
 	"minAppVersion": "1.6.7",
-	"description": "This plugin adds thumbnails beside notes using first image embed.",
-	"author": "j0y",
-	"authorUrl": "https://github.com/j0y/",
+	"description": "Displays thumbnails for canvas files in bases-cards view using the first image from each canvas.",
+	"author": "your-name",
+	"authorUrl": "https://github.com/your-username/",
 	"isDesktopOnly": false
 }
